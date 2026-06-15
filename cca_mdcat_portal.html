@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CCA Biology Testing Portal</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    
+    <!-- Babel for in-browser JSX compilation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* Global Styles */
+        body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background-color: #f8fafc; }
+        
+        /* Print Styles for flawless PDF generation */
+        @media print {
+            body { 
+                -webkit-print-color-adjust: exact !important; 
+                print-color-adjust: exact !important; 
+                background-color: white !important; 
+            }
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            @page { margin: 15mm; }
+            .break-inside-avoid { break-inside: avoid; page-break-inside: avoid; }
+            .break-before-page { break-before: page; page-break-before: always; }
+        }
+        
+        /* Hide print layouts on screen */
+        @media screen {
+            .print-only { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // --- ICONS (Inline SVGs to prevent dependency errors) ---
+        const IconUser = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
+        const IconBookOpen = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>;
+        const IconList = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>;
+        const IconGraduationCap = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>;
+        const IconArrowRight = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>;
+        const IconShieldAlert = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>;
+        const IconClock = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
+        const IconChevronLeft = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>;
+        const IconChevronRight = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>;
+        const IconCheckCircle = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>;
+        const IconXCircle = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>;
+        const IconAlertCircle = () => <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>;
+        const IconDownload = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>;
+        const IconPrinter = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>;
+        const IconFileText = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>;
+        const IconCheck = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>;
+        const IconX = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
+
+        // --- DATA: First 30 MDCAT Biology MCQs ---
+        const MCQ_DATA = [
+            { id: 1, text: "The innermost component of a virion is usually the:", options: { A: "Envelope", B: "Capsid", C: "Viral genome", D: "Matrix protein" }, correct: "C", explanation: "The core of a virion contains its genetic material (DNA or RNA), which is the innermost component protected by the outer protein layers." },
+            { id: 2, text: "Which statement best explains the small size of nucleic acid in viruses?", options: { A: "Viruses produce many different proteins", B: "Viruses encode only enzymes", C: "Viruses use hundreds of copies of a few proteins", D: "Viruses do not synthesize proteins" }, correct: "C", explanation: "Viruses have small genomes because they maximize efficiency by coding for only a few structural proteins (capsomeres) that are repeated hundreds of times to build the capsid." },
+            { id: 3, text: "Capsomeres are:", options: { A: "Viral enzymes", B: "Repeating protein subunits of the capsid", C: "Viral nucleic acids", D: "Host receptors" }, correct: "B", explanation: "Capsomeres are the individual morphological protein subunits that self-assemble to form the protective viral capsid." },
+            { id: 4, text: "The complete protein shell surrounding the viral genome is called the:", options: { A: "Envelope", B: "Matrix", C: "Capsid", D: "Peplomer" }, correct: "C", explanation: "The capsid is the entire continuous protein shell that encloses the viral genetic material." },
+            { id: 5, text: "Viral spikes are mainly responsible for:", options: { A: "Genome replication", B: "Host cell attachment", C: "ATP synthesis", D: "Protein degradation" }, correct: "B", explanation: "Spikes (glycoproteins) protrude from the viral surface and bind specifically to receptor molecules on the host cell membrane." },
+            { id: 6, text: "Peplomers are usually found on:", options: { A: "Naked viruses only", B: "Viral RNA", C: "The lipid envelope", D: "Capsomeres" }, correct: "C", explanation: "Peplomers are glycoprotein spikes that project from the lipid envelope of enveloped viruses." },
+            { id: 7, text: "Matrix proteins mainly connect the:", options: { A: "Genome and enzymes", B: "Envelope and capsid", C: "Ribosome and capsid", D: "Genome and receptor" }, correct: "B", explanation: "Matrix proteins are located between the envelope and the nucleocapsid, providing structural stability and facilitating viral assembly." },
+            { id: 8, text: "Which protein must be carried by many negative-sense RNA viruses?", options: { A: "Integrase", B: "Lysozyme", C: "RNA-dependent RNA polymerase", D: "Matrix protein" }, correct: "C", explanation: "Negative-sense RNA cannot be translated directly. The virus must carry RNA-dependent RNA polymerase to synthesize positive-sense mRNA immediately upon entry." },
+            { id: 9, text: "Which is NOT a function of the viral capsid?", options: { A: "Protecting nucleic acid", B: "Recognizing host receptors", C: "Producing ATP", D: "Assisting entry into host cells" }, correct: "C", explanation: "Viruses are obligate intracellular parasites and lack the metabolic machinery (like mitochondria) to produce ATP." },
+            { id: 10, text: "A nucleocapsid consists of:", options: { A: "Envelope + spikes", B: "Genome + capsid", C: "Matrix + envelope", D: "Genome + enzymes only" }, correct: "B", explanation: "The term nucleocapsid specifically refers to the combination of the viral nucleic acid (genome) and its surrounding protein coat (capsid)." },
+            { id: 11, text: "Helical viruses typically appear:", options: { A: "Rod-shaped or filamentous", B: "Cubical", C: "Polygonal only", D: "Rectangular" }, correct: "A", explanation: "Helical symmetry results in a cylindrical, rod-like, or filamentous structure due to capsomeres winding around the nucleic acid." },
+            { id: 12, text: "In helical viruses, capsomeres are arranged:", options: { A: "Randomly", B: "In a spiral around the genome", C: "In 20 triangular faces", D: "In a double membrane" }, correct: "B", explanation: "Capsomeres bind directly to the spiral RNA/DNA, forming a continuous helical winding that creates a tube-like structure." },
+            { id: 13, text: "Which virus is a classic example of helical symmetry?", options: { A: "Poliovirus", B: "Adenovirus", C: "Tobacco Mosaic Virus", D: "HPV" }, correct: "C", explanation: "Tobacco Mosaic Virus (TMV) is the archetypal model for helical symmetry, appearing as a rigid rod." },
+            { id: 14, text: "An icosahedral capsid contains:", options: { A: "10 triangular faces", B: "12 triangular faces", C: "20 triangular faces", D: "24 triangular faces" }, correct: "C", explanation: "A regular icosahedron is a geometric shape consisting of 20 equilateral triangular faces and 12 vertices." },
+            { id: 15, text: "Complex viruses are characterized by:", options: { A: "Purely helical capsids", B: "Purely icosahedral capsids", C: "Additional specialized structures", D: "Absence of capsid proteins" }, correct: "C", explanation: "Complex viruses, like bacteriophages or poxviruses, have components like tail fibers, sheaths, or multiple lipid layers that don't fit strict helical/icosahedral categories." },
+            { id: 16, text: "An envelope is acquired mainly from the:", options: { A: "Viral genome", B: "Capsid proteins", C: "Host cell membrane", D: "Ribosomes" }, correct: "C", explanation: "Enveloped viruses acquire their lipid bilayer by budding through the host cell membrane (plasma membrane, ER, or Golgi) as they exit." },
+            { id: 17, text: "Most animal viruses are:", options: { A: "Enveloped", B: "Naked helical", C: "DNA-free", D: "Capsid-free" }, correct: "A", explanation: "A large proportion of viruses infecting animals (including humans) are enveloped, facilitating entry via membrane fusion." },
+            { id: 18, text: "Compared with naked viruses, enveloped viruses are generally more:", options: { A: "Stable in the environment", B: "Resistant to detergents", C: "Sensitive to soap and drying", D: "Resistant to heat" }, correct: "C", explanation: "The lipid envelope is highly susceptible to desiccation, heat, soaps, and detergents, making enveloped viruses more fragile outside the host." },
+            { id: 19, text: "Which virus is enveloped?", options: { A: "Poliovirus", B: "Adenovirus", C: "HIV", D: "HPV" }, correct: "C", explanation: "HIV is a retrovirus that possesses a lipid envelope acquired from the host cell membrane, studded with gp120/gp41 spikes." },
+            { id: 20, text: "Which virus is non-enveloped?", options: { A: "Influenza virus", B: "HIV", C: "Rabies virus", D: "Poliovirus" }, correct: "D", explanation: "Poliovirus is a classic example of a naked, non-enveloped icosahedral enterovirus." },
+            { id: 21, text: "Which characteristic best distinguishes DNA viruses from RNA viruses?", options: { A: "Presence of capsid", B: "Type of genetic material", C: "Shape of virion", D: "Presence of spikes" }, correct: "B", explanation: "The fundamental classification difference is whether their primary genetic instructions are stored in Deoxyribonucleic acid (DNA) or Ribonucleic acid (RNA)." },
+            { id: 22, text: "A double-stranded viral genome contains:", options: { A: "One polynucleotide strand", B: "Two complementary strands", C: "RNA and DNA together", D: "No nucleic acid" }, correct: "B", explanation: "Double-stranded genomes (dsDNA or dsRNA) consist of two antiparallel, complementary nucleic acid strands bound by hydrogen bonds." },
+            { id: 23, text: "Positive-sense RNA viruses can be translated immediately because their genome acts as:", options: { A: "DNA", B: "rRNA", C: "mRNA", D: "tRNA" }, correct: "C", explanation: "Positive-sense RNA is essentially identical to host mRNA and can be immediately translated by host ribosomes to form viral proteins." },
+            { id: 24, text: "Negative-sense RNA viruses cannot be translated directly because their RNA is:", options: { A: "Identical to mRNA", B: "Complementary to mRNA", C: "Double-stranded", D: "Circular" }, correct: "B", explanation: "Negative-sense RNA is the reverse complement of mRNA. Ribosomes cannot read it to make proteins." },
+            { id: 25, text: "Before translation, a negative-sense RNA virus must first produce:", options: { A: "DNA", B: "Capsid proteins", C: "Positive-sense mRNA", D: "Envelope proteins" }, correct: "C", explanation: "The virus uses its packaged RNA-dependent RNA polymerase to transcribe its negative-sense genome into positive-sense mRNA for translation." },
+            { id: 26, text: "Ambisense genomes contain:", options: { A: "Only positive-sense regions", B: "Only negative-sense regions", C: "Both positive- and negative-sense regions", D: "Neither positive nor negative regions" }, correct: "C", explanation: "Ambisense viruses (like Arenaviruses) have genomes where part of the RNA strand is positive-sense and another part is negative-sense." },
+            { id: 27, text: "Viruses grouped according to the organism they infect are classified by:", options: { A: "Shape", B: "Host type", C: "Envelope type", D: "Polarity" }, correct: "B", explanation: "Classifying viruses into categories like animal viruses, plant viruses, and bacteriophages relies on their preferred host type." },
+            { id: 28, text: "Tobacco Mosaic Virus is classified as a:", options: { A: "Animal virus", B: "Bacteriophage", C: "Plant virus", D: "Archaeal virus" }, correct: "C", explanation: "TMV infects tobacco and other solanaceous plants, causing mosaic-like mottling on leaves." },
+            { id: 29, text: "Viruses that infect bacteria are called:", options: { A: "Mycoviruses", B: "Archaeal viruses", C: "Retroviruses", D: "Bacteriophages" }, correct: "D", explanation: "Bacteriophages (often just called 'phages') are specialized viruses that exclusively infect and replicate within bacteria." },
+            { id: 30, text: "Which pair is correctly matched?", options: { A: "Poliovirus — Enveloped virus", B: "HIV — Reverse transcriptase", C: "Adenovirus — Helical symmetry", D: "Rabies virus — Icosahedral symmetry" }, correct: "B", explanation: "HIV is a retrovirus that carries reverse transcriptase. Poliovirus is naked, Adenovirus is icosahedral, and Rabies is helical." }
+        ];
+
+        const ACADEMY_INFO = {
+            name: "Capital Coaching Academy (CCA)",
+            subject: "Biology MDCAT Preparation",
+            topic: "Virology & Acellular Life",
+            instructor: "Sir Jawad",
+            timeLimitSeconds: 1800 // 30 Minutes for 30 MCQs
+        };
+
+        // --- COMPONENTS ---
+        const CCALogo = ({ className = "w-16 h-16" }) => (
+            <div className={`relative flex items-center justify-center bg-gradient-to-br from-blue-600 to-cyan-500 rounded-xl shadow-lg ${className}`}>
+                <div className="absolute inset-1 border-2 border-white/30 rounded-lg"></div>
+                <span className="font-bold text-white text-2xl tracking-wider select-none">CCA</span>
+            </div>
+        );
+
+        function App() {
+            const [step, setStep] = useState('landing'); 
+            const [student, setStudent] = useState({ name: '', fatherName: '' });
+            const [answers, setAnswers] = useState({});
+            const [currentIndex, setCurrentIndex] = useState(0);
+            const [timeLeft, setTimeLeft] = useState(ACADEMY_INFO.timeLimitSeconds);
+            const [printMode, setPrintMode] = useState('none'); 
+            const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+
+            // --- Print Logic ---
+            useEffect(() => {
+                if (printMode !== 'none') {
+                    // Give React time to render the print layout, then trigger native print
+                    const timer = setTimeout(() => {
+                        window.print();
+                    }, 500); 
+                    return () => clearTimeout(timer);
+                }
+            }, [printMode]);
+
+            useEffect(() => {
+                const handleAfterPrint = () => setPrintMode('none');
+                window.addEventListener('afterprint', handleAfterPrint);
+                return () => window.removeEventListener('afterprint', handleAfterPrint);
+            }, []);
+
+            // --- Timer Logic ---
+            useEffect(() => {
+                let timerId;
+                if (step === 'quiz' && timeLeft > 0 && printMode === 'none') {
+                    timerId = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
+                } else if (timeLeft === 0 && step === 'quiz') {
+                    handleSubmitQuiz();
+                }
+                return () => clearInterval(timerId);
+            }, [step, timeLeft, printMode]);
+
+            const formatTime = (seconds) => {
+                const m = Math.floor(seconds / 60);
+                const s = seconds % 60;
+                return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            };
+
+            const handleStartQuiz = (e) => {
+                e.preventDefault();
+                if (student.name.trim() && student.fatherName.trim()) {
+                    setStep('quiz');
+                    setTimeLeft(ACADEMY_INFO.timeLimitSeconds);
+                    setAnswers({});
+                    setCurrentIndex(0);
+                }
+            };
+
+            const handleSubmitQuiz = () => {
+                setShowSubmitConfirm(false);
+                setStep('result');
+            };
+
+            const calculateScore = () => {
+                let correct = 0; let incorrect = 0; let skipped = 0;
+                MCQ_DATA.forEach(q => {
+                    const ans = answers[q.id];
+                    if (!ans) skipped++;
+                    else if (ans === q.correct) correct++;
+                    else incorrect++;
+                });
+                const percentage = Math.round((correct / MCQ_DATA.length) * 100);
+                return { correct, incorrect, skipped, percentage, total: MCQ_DATA.length };
+            };
+
+            const handleContextMenu = (e) => {
+                if (step === 'quiz') e.preventDefault();
+            };
+
+            // --- RENDERERS ---
+
+            const renderLanding = () => (
+                <div className="flex flex-col items-center justify-center min-h-screen p-6 relative overflow-hidden bg-gradient-to-b from-slate-50 to-blue-50/50">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-cyan-500"></div>
+                    <div className="max-w-md w-full bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-10 text-center border border-slate-100">
+                        <div className="flex justify-center mb-8"><CCALogo className="w-24 h-24" /></div>
+                        <h1 className="text-3xl font-bold text-slate-800 mb-2">CCA Biology Portal</h1>
+                        <p className="text-blue-600 font-medium tracking-wide text-sm mb-6 uppercase">MDCAT Preparation Platform</p>
+                        
+                        <div className="bg-slate-50 rounded-2xl p-6 mb-8 text-left space-y-4 border border-slate-100">
+                            <div className="flex items-center text-slate-600"><span className="text-blue-500 mr-3"><IconBookOpen/></span> <span className="font-medium text-slate-700">{ACADEMY_INFO.subject}</span></div>
+                            <div className="flex items-center text-slate-600"><span className="text-cyan-500 mr-3"><IconList/></span> <span>{MCQ_DATA.length} High-Yield MCQs</span></div>
+                            <div className="flex items-center text-slate-600"><span className="text-blue-500 mr-3"><IconGraduationCap/></span> <span>By {ACADEMY_INFO.instructor}</span></div>
+                        </div>
+                        
+                        <button onClick={() => setStep('info')} className="w-full bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white font-semibold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center group">
+                            <span>Enter Portal</span><span className="ml-2 group-hover:translate-x-1 transition-transform"><IconArrowRight/></span>
+                        </button>
+                    </div>
+                </div>
+            );
+
+            const renderInfoForm = () => (
+                <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-slate-50">
+                    <div className="max-w-md w-full bg-white rounded-3xl shadow-xl shadow-blue-900/5 p-8 border border-slate-100">
+                        <div className="flex items-center justify-center mb-6">
+                            <CCALogo className="w-16 h-16 mr-4" />
+                            <div className="text-left">
+                                <h2 className="text-xl font-bold text-slate-800">Candidate Info</h2>
+                                <p className="text-xs text-slate-500 uppercase tracking-wider">Required for MDCAT Report</p>
+                            </div>
+                        </div>
+                        <form onSubmit={handleStartQuiz} className="space-y-5">
+                            <div>
+                                <label className="text-sm font-medium text-slate-700 mb-1 flex items-center"><span className="text-blue-500 mr-2"><IconUser/></span> Full Name</label>
+                                <input required autoFocus type="text" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none bg-slate-50 focus:bg-white" placeholder="Enter your complete name" value={student.name} onChange={e => setStudent({...student, name: e.target.value})} />
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium text-slate-700 mb-1 flex items-center"><span className="text-cyan-500 mr-2"><IconUser/></span> Father Name</label>
+                                <input required type="text" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none bg-slate-50 focus:bg-white" placeholder="Enter father's name" value={student.fatherName} onChange={e => setStudent({...student, fatherName: e.target.value})} />
+                            </div>
+                            <div className="bg-blue-50 p-4 rounded-xl flex items-start text-sm text-blue-800 mt-6">
+                                <span className="text-blue-600 mr-3 mt-0.5"><IconShieldAlert/></span>
+                                <p>Right-click and text selection are disabled during the test. Auto-submit occurs at timer end.</p>
+                            </div>
+                            <button type="submit" className="w-full mt-6 bg-slate-800 hover:bg-slate-900 text-white font-semibold py-4 rounded-xl shadow-lg transition-all">Start Assessment</button>
+                        </form>
+                    </div>
+                </div>
+            );
+
+            const renderQuiz = () => {
+                const q = MCQ_DATA[currentIndex];
+                const answeredCount = Object.keys(answers).length;
+                const progress = (answeredCount / MCQ_DATA.length) * 100;
+
+                return (
+                    <div className="flex flex-col h-screen bg-slate-50 select-none" onContextMenu={handleContextMenu}>
+                        <header className="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center z-10 shadow-sm">
+                            <div className="flex items-center">
+                                <CCALogo className="w-10 h-10 mr-3 hidden sm:flex" />
+                                <div>
+                                    <h2 className="font-bold text-slate-800 hidden sm:block">{ACADEMY_INFO.name}</h2>
+                                    <div className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded inline-block mt-1">Q {currentIndex + 1} of {MCQ_DATA.length}</div>
+                                </div>
+                            </div>
+                            <div className="flex items-center space-x-6">
+                                <div className={`flex items-center font-mono text-lg font-semibold px-4 py-2 rounded-lg ${timeLeft < 300 ? 'bg-red-50 text-red-600 animate-pulse' : 'bg-slate-100 text-slate-700'}`}>
+                                    <span className="mr-2"><IconClock/></span>{formatTime(timeLeft)}
+                                </div>
+                                <button onClick={() => setShowSubmitConfirm(true)} className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg font-medium transition-colors shadow-md">Finish</button>
+                            </div>
+                        </header>
+
+                        <div className="h-1.5 w-full bg-slate-200"><div className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 transition-all duration-300 ease-out" style={{ width: `${progress}%` }}></div></div>
+
+                        <div className="flex-1 flex overflow-hidden">
+                            <main className="flex-1 overflow-y-auto p-6 lg:p-12 flex flex-col">
+                                <div className="max-w-4xl w-full mx-auto flex-1 flex flex-col">
+                                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 mb-6 flex-1">
+                                        <h3 className="text-xl lg:text-2xl font-medium text-slate-800 leading-relaxed mb-8">{q.text}</h3>
+                                        <div className="space-y-4">
+                                            {Object.entries(q.options).map(([key, value]) => {
+                                                const isSelected = answers[q.id] === key;
+                                                return (
+                                                    <div key={key} onClick={() => setAnswers(prev => ({ ...prev, [q.id]: key }))} className={`group relative flex items-center p-4 lg:p-5 rounded-xl border-2 cursor-pointer transition-all duration-200 ${isSelected ? 'border-blue-500 bg-blue-50 shadow-sm' : 'border-slate-100 bg-white hover:border-blue-200 hover:bg-slate-50'}`}>
+                                                        <div className={`flex items-center justify-center w-8 h-8 rounded-lg font-bold text-sm mr-4 transition-colors ${isSelected ? 'bg-blue-500 text-white' : 'bg-slate-100 text-slate-600 group-hover:bg-blue-100 group-hover:text-blue-700'}`}>{key}</div>
+                                                        <span className={`text-base lg:text-lg ${isSelected ? 'text-blue-900 font-medium' : 'text-slate-700'}`}>{value}</span>
+                                                        {isSelected && <span className="text-blue-500 absolute right-4"><IconCheckCircle/></span>}
+                                                    </div>
+                                                )
+                                            })}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center justify-between mt-auto">
+                                        <button onClick={() => setCurrentIndex(prev => prev - 1)} disabled={currentIndex === 0} className="flex items-center px-6 py-3 rounded-xl font-medium text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-50"><span className="mr-2"><IconChevronLeft/></span> Previous</button>
+                                        <button onClick={() => setCurrentIndex(prev => prev + 1)} disabled={currentIndex === MCQ_DATA.length - 1} className="flex items-center px-6 py-3 rounded-xl font-medium text-white bg-slate-800 hover:bg-slate-900 disabled:opacity-50">Next <span className="ml-2"><IconChevronRight/></span></button>
+                                    </div>
+                                </div>
+                            </main>
+                            <aside className="w-80 bg-white border-l border-slate-200 hidden lg:flex flex-col">
+                                <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+                                    <h3 className="font-semibold text-slate-800 mb-2">Question Navigator</h3>
+                                    <div className="flex justify-between text-sm"><span className="text-blue-600 font-medium">{answeredCount} Answered</span><span className="text-slate-500">{MCQ_DATA.length - answeredCount} Pending</span></div>
+                                </div>
+                                <div className="flex-1 overflow-y-auto p-6 grid grid-cols-5 gap-2 content-start">
+                                    {MCQ_DATA.map((item, index) => (
+                                        <button key={item.id} onClick={() => setCurrentIndex(index)} className={`h-10 rounded-lg text-sm font-medium transition-all ${index === currentIndex ? 'ring-2 ring-blue-500 ring-offset-2' : ''} ${answers[item.id] ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'}`}>{index + 1}</button>
+                                    ))}
+                                </div>
+                            </aside>
+                        </div>
+
+                        {showSubmitConfirm && (
+                            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                                <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl">
+                                    <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4"><IconAlertCircle/></div>
+                                    <h3 className="text-xl font-bold text-center text-slate-800 mb-2">Submit Assessment?</h3>
+                                    <p className="text-center text-slate-600 mb-6 text-sm">You have answered <strong className="text-slate-800">{answeredCount}</strong> out of <strong className="text-slate-800">{MCQ_DATA.length}</strong> questions.</p>
+                                    <div className="space-y-3">
+                                        <button onClick={handleSubmitQuiz} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition-colors">Yes, Submit Now</button>
+                                        <button onClick={() => setShowSubmitConfirm(false)} className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3 rounded-xl transition-colors">Return to Quiz</button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                );
+            };
+
+            const renderResult = () => {
+                const stats = calculateScore();
+                const circumference = 2 * Math.PI * 45;
+                const strokeDashoffset = circumference - (stats.percentage / 100) * circumference;
+                
+                let feedback = { text: "Outstanding Performance", color: "text-blue-600", bg: "bg-blue-50" };
+                if (stats.percentage < 50) feedback = { text: "Needs Significant Review", color: "text-red-600", bg: "bg-red-50" };
+                else if (stats.percentage < 70) feedback = { text: "Fair, Keep Practicing", color: "text-yellow-600", bg: "bg-yellow-50" };
+                else if (stats.percentage < 85) feedback = { text: "Good Grasp of Concepts", color: "text-cyan-600", bg: "bg-cyan-50" };
+
+                return (
+                    <div className="min-h-screen bg-slate-50 p-6 lg:p-12 overflow-y-auto">
+                        <div className="max-w-4xl mx-auto space-y-6">
+                            <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between">
+                                <div className="flex items-center mb-6 md:mb-0">
+                                    <CCALogo className="w-16 h-16 mr-6" />
+                                    <div>
+                                        <h1 className="text-2xl font-bold text-slate-800">{ACADEMY_INFO.name}</h1>
+                                        <p className="text-slate-500">{ACADEMY_INFO.subject} | {ACADEMY_INFO.topic}</p>
+                                        <div className="mt-2 text-sm text-slate-700 bg-slate-100 inline-block px-3 py-1 rounded-full font-medium">Candidate: <span className="text-blue-700">{student.name}</span></div>
+                                    </div>
+                                </div>
+                                <div className="flex space-x-3 w-full md:w-auto">
+                                    <button onClick={() => setPrintMode('result')} className="flex-1 md:flex-none flex items-center justify-center px-5 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl font-medium border border-blue-200"><span className="mr-2"><IconDownload/></span> Result PDF</button>
+                                    <button onClick={() => setPrintMode('practice')} className="flex-1 md:flex-none flex items-center justify-center px-5 py-2.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-xl font-medium"><span className="mr-2"><IconPrinter/></span> Practice PDF</button>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div className="md:col-span-1 bg-white rounded-3xl p-8 shadow-sm border border-slate-200 flex flex-col items-center justify-center">
+                                    <div className="relative w-40 h-40 flex items-center justify-center mb-4">
+                                        <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                                            <circle cx="50" cy="50" r="45" fill="none" stroke="#f1f5f9" strokeWidth="8" />
+                                            <circle cx="50" cy="50" r="45" fill="none" stroke="#2563EB" strokeWidth="8" strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} className="transition-all duration-1000 ease-out"/>
+                                        </svg>
+                                        <div className="absolute flex flex-col items-center justify-center text-center">
+                                            <span className="text-4xl font-bold text-slate-800">{stats.percentage}%</span>
+                                            <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Score</span>
+                                        </div>
+                                    </div>
+                                    <div className={`px-4 py-2 rounded-xl text-sm font-bold text-center w-full ${feedback.bg} ${feedback.color}`}>{feedback.text}</div>
+                                </div>
+
+                                <div className="md:col-span-2 bg-white rounded-3xl p-8 shadow-sm border border-slate-200 grid grid-cols-2 gap-4">
+                                    <div className="bg-slate-50 p-6 rounded-2xl flex flex-col justify-center border border-slate-100"><div className="flex items-center text-slate-500 text-sm font-medium mb-2 uppercase tracking-wide"><span className="mr-2"><IconList/></span> Total MCQs</div><div className="text-3xl font-bold text-slate-800">{stats.total}</div></div>
+                                    <div className="bg-emerald-50 p-6 rounded-2xl flex flex-col justify-center border border-emerald-100"><div className="flex items-center text-emerald-600 text-sm font-medium mb-2 uppercase tracking-wide"><span className="mr-2"><IconCheckCircle/></span> Correct</div><div className="text-3xl font-bold text-emerald-700">{stats.correct}</div></div>
+                                    <div className="bg-rose-50 p-6 rounded-2xl flex flex-col justify-center border border-rose-100"><div className="flex items-center text-rose-600 text-sm font-medium mb-2 uppercase tracking-wide"><span className="mr-2"><IconXCircle/></span> Incorrect</div><div className="text-3xl font-bold text-rose-700">{stats.incorrect}</div></div>
+                                    <div className="bg-slate-100 p-6 rounded-2xl flex flex-col justify-center border border-slate-200"><div className="flex items-center text-slate-500 text-sm font-medium mb-2 uppercase tracking-wide"><span className="mr-2"><IconClock/></span> Unattempted</div><div className="text-3xl font-bold text-slate-700">{stats.skipped}</div></div>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-center pt-4">
+                                <button onClick={() => setStep('review')} className="bg-slate-800 hover:bg-slate-900 text-white font-semibold py-4 px-10 rounded-xl shadow-lg transition-all flex items-center"><span className="mr-3"><IconFileText/></span> Detailed MCQ Review</button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            const renderReview = () => (
+                <div className="min-h-screen bg-slate-50">
+                    <header className="bg-white border-b border-slate-200 px-6 py-4 sticky top-0 z-20 shadow-sm flex items-center justify-between">
+                        <div className="flex items-center">
+                            <button onClick={() => setStep('result')} className="p-2 hover:bg-slate-100 rounded-lg mr-4 transition-colors"><IconChevronLeft/></button>
+                            <h2 className="font-bold text-lg text-slate-800">MCQ Review Analysis</h2>
+                        </div>
+                        <button onClick={() => setPrintMode('result')} className="flex items-center px-4 py-2 bg-blue-50 text-blue-700 rounded-lg font-medium text-sm hover:bg-blue-100"><span className="mr-2"><IconDownload/></span> Download Report</button>
+                    </header>
+
+                    <div className="max-w-4xl mx-auto p-6 space-y-6">
+                        {MCQ_DATA.map((q, idx) => {
+                            const stuAns = answers[q.id];
+                            const isCorrect = stuAns === q.correct;
+                            const isSkipped = !stuAns;
+                            return (
+                                <div key={q.id} className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200">
+                                    <div className="flex items-start mb-6">
+                                        <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold mr-4 mt-0.5 ${isCorrect ? 'bg-emerald-100 text-emerald-700' : isSkipped ? 'bg-slate-100 text-slate-500' : 'bg-rose-100 text-rose-700'}`}>{idx + 1}</div>
+                                        <div>
+                                            <h3 className="text-lg font-medium text-slate-800">{q.text}</h3>
+                                            {isSkipped && <span className="inline-block mt-2 px-2 py-1 bg-slate-100 text-slate-500 text-xs font-semibold rounded uppercase">Skipped</span>}
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6 ml-12">
+                                        {Object.entries(q.options).map(([key, val]) => {
+                                            let cardClass = "border-slate-100 bg-slate-50/50 text-slate-600";
+                                            let icon = null;
+                                            if (key === q.correct) { cardClass = "border-emerald-500 bg-emerald-50 shadow-sm text-emerald-900 ring-1 ring-emerald-500"; icon = <span className="text-emerald-600 absolute right-3"><IconCheck/></span>; } 
+                                            else if (key === stuAns && !isCorrect) { cardClass = "border-rose-500 bg-rose-50 text-rose-900 ring-1 ring-rose-500"; icon = <span className="text-rose-600 absolute right-3"><IconX/></span>; }
+                                            return (
+                                                <div key={key} className={`relative p-3 rounded-xl border flex items-center ${cardClass}`}>
+                                                    <div className="w-6 h-6 rounded flex items-center justify-center font-bold text-xs bg-white bg-opacity-50 mr-3 border border-current opacity-60">{key}</div>
+                                                    <span className="text-sm font-medium pr-8">{val}</span>{icon}
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                    <div className="ml-12 bg-blue-50/50 rounded-xl p-5 border border-blue-100">
+                                        <div className="flex items-center text-blue-800 font-semibold mb-2 text-sm uppercase tracking-wider"><span className="mr-2"><IconBookOpen/></span> Concept Discussion</div>
+                                        <p className="text-slate-700 text-sm leading-relaxed">{q.explanation}</p>
+                                    </div>
+                                </div>
+                            )
+                        })}
+                    </div>
+                </div>
+            );
+
+            // --- PRINTABLE PDF COMPONENTS ---
+            const renderPrintResult = () => {
+                const stats = calculateScore();
+                return (
+                    <div className="print-only max-w-4xl mx-auto p-8 bg-white text-black font-sans">
+                        <div className="flex justify-between items-end border-b-2 border-slate-800 pb-4 mb-8">
+                            <div className="flex items-center">
+                                <CCALogo className="w-16 h-16 mr-4 grayscale" />
+                                <div>
+                                    <h1 className="text-2xl font-bold uppercase tracking-tight">{ACADEMY_INFO.name}</h1>
+                                    <p className="text-lg font-medium">{ACADEMY_INFO.subject} — {ACADEMY_INFO.topic}</p>
+                                    <p className="text-sm text-gray-600">Instructor: {ACADEMY_INFO.instructor}</p>
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <h2 className="text-xl font-bold">Official Result Report</h2>
+                                <p className="text-sm text-gray-600">Date: {new Date().toLocaleDateString()}</p>
+                            </div>
+                        </div>
+
+                        <div className="border border-gray-300 rounded-lg p-4 mb-8 flex justify-between bg-gray-50">
+                            <div><p className="text-sm text-gray-500 uppercase tracking-wider font-bold">Candidate Name</p><p className="text-lg font-bold">{student.name || 'N/A'}</p></div>
+                            <div><p className="text-sm text-gray-500 uppercase tracking-wider font-bold">Father's Name</p><p className="text-lg font-bold">{student.fatherName || 'N/A'}</p></div>
+                            <div className="text-right"><p className="text-sm text-gray-500 uppercase tracking-wider font-bold">Final Score</p><p className="text-2xl font-black">{stats.percentage}%</p></div>
+                        </div>
+
+                        <div className="grid grid-cols-4 gap-4 mb-10 text-center">
+                            <div className="border border-gray-300 p-3 rounded"><p className="text-xs uppercase">Total</p><p className="font-bold text-xl">{stats.total}</p></div>
+                            <div className="border border-gray-300 p-3 rounded"><p className="text-xs uppercase">Correct</p><p className="font-bold text-xl text-green-700">{stats.correct}</p></div>
+                            <div className="border border-gray-300 p-3 rounded"><p className="text-xs uppercase">Incorrect</p><p className="font-bold text-xl text-red-700">{stats.incorrect}</p></div>
+                            <div className="border border-gray-300 p-3 rounded"><p className="text-xs uppercase">Skipped</p><p className="font-bold text-xl text-gray-500">{stats.skipped}</p></div>
+                        </div>
+
+                        <h3 className="text-lg font-bold border-b border-gray-300 pb-2 mb-4">Detailed Question Review</h3>
+                        <div className="space-y-6">
+                            {MCQ_DATA.map((q, idx) => {
+                                const stuAns = answers[q.id];
+                                const isCorrect = stuAns === q.correct;
+                                return (
+                                    <div key={q.id} className="border border-gray-200 rounded p-4 break-inside-avoid shadow-none">
+                                        <p className="font-bold mb-2">{idx + 1}. {q.text}</p>
+                                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 mb-3 text-sm">
+                                            {Object.entries(q.options).map(([k, v]) => (
+                                                <div key={k} className={`flex items-center ${k === q.correct ? 'font-bold' : ''}`}>
+                                                    <span className="w-5">{k}.</span> <span>{v}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div className="bg-gray-50 p-3 rounded border border-gray-200 text-sm flex flex-col space-y-1">
+                                            <div className="flex justify-between font-medium">
+                                                <span>Selected: <span className={isCorrect ? 'text-green-700' : 'text-red-700'}>{stuAns || 'None'}</span></span>
+                                                <span>Correct: <span className="text-green-700">{q.correct}</span></span>
+                                            </div>
+                                            <p className="text-gray-700 mt-2 border-t border-gray-200 pt-2"><span className="font-bold">Discussion:</span> {q.explanation}</p>
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                        <div className="mt-12 text-center text-gray-500 text-xs border-t border-gray-300 pt-4">Generated by CCA Online Testing Portal • Capital Coaching Academy</div>
+                    </div>
+                );
+            };
+
+            const renderPrintPractice = () => (
+                <div className="print-only max-w-4xl mx-auto p-8 bg-white text-black font-sans">
+                    <div className="text-center border-b-2 border-slate-800 pb-6 mb-8">
+                        <div className="flex justify-center mb-4"><CCALogo className="w-16 h-16 grayscale" /></div>
+                        <h1 className="text-3xl font-black uppercase tracking-tight">{ACADEMY_INFO.name}</h1>
+                        <h2 className="text-xl font-bold mt-2">{ACADEMY_INFO.subject}</h2>
+                        <p className="text-lg text-gray-700 font-medium">Topic: {ACADEMY_INFO.topic}</p>
+                        <div className="flex justify-center items-center mt-4 space-x-6 text-sm font-semibold text-gray-600">
+                            <span>Instructor: {ACADEMY_INFO.instructor}</span><span>•</span>
+                            <span>Total MCQs: {MCQ_DATA.length}</span><span>•</span>
+                            <span>Time Allowed: {Math.floor(ACADEMY_INFO.timeLimitSeconds / 60)} Mins</span>
+                        </div>
+                        <div className="mt-6 border border-gray-400 p-4 rounded text-left flex justify-between">
+                            <span>Name: _______________________________</span><span>Score: _______ / {MCQ_DATA.length}</span>
+                        </div>
+                    </div>
+
+                    <div className="space-y-6">
+                        {MCQ_DATA.map((q, idx) => (
+                            <div key={q.id} className="break-inside-avoid">
+                                <p className="font-semibold mb-2 text-base flex"><span className="w-6 shrink-0">{idx + 1}.</span> <span>{q.text}</span></p>
+                                <div className="pl-6 space-y-1.5 text-sm">
+                                    <div className="flex"><span className="w-6 shrink-0 font-medium">A)</span> <span>{q.options.A}</span></div>
+                                    <div className="flex"><span className="w-6 shrink-0 font-medium">B)</span> <span>{q.options.B}</span></div>
+                                    <div className="flex"><span className="w-6 shrink-0 font-medium">C)</span> <span>{q.options.C}</span></div>
+                                    <div className="flex"><span className="w-6 shrink-0 font-medium">D)</span> <span>{q.options.D}</span></div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="break-before-page pt-8">
+                        <div className="text-center border-b-2 border-slate-800 pb-4 mb-6">
+                            <h2 className="text-2xl font-bold uppercase">Answer Key & Discussion</h2>
+                            <p className="text-gray-600 text-sm">Self-Practice Resource Module</p>
+                        </div>
+                        <table className="w-full text-sm border-collapse border border-gray-300">
+                            <thead>
+                                <tr className="bg-gray-100 border-b border-gray-300">
+                                    <th className="border border-gray-300 p-2 w-12 text-center">Q#</th>
+                                    <th className="border border-gray-300 p-2 text-left w-1/4">Question</th>
+                                    <th className="border border-gray-300 p-2 w-12 text-center">Key</th>
+                                    <th className="border border-gray-300 p-2 text-left">Discussion / Concept</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {MCQ_DATA.map((q, idx) => (
+                                    <tr key={q.id} className="border-b border-gray-300 break-inside-avoid">
+                                        <td className="border border-gray-300 p-2 text-center font-bold align-top">{idx + 1}</td>
+                                        <td className="border border-gray-300 p-2 align-top text-gray-700">{q.text}</td>
+                                        <td className="border border-gray-300 p-2 text-center font-black align-top">{q.correct}</td>
+                                        <td className="border border-gray-300 p-2 align-top text-gray-800">{q.explanation}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        <div className="mt-8 text-center text-gray-500 text-xs">Capital Coaching Academy (CCA) • {new Date().getFullYear()}</div>
+                    </div>
+                </div>
+            );
+
+            return (
+                <div className="min-h-screen bg-slate-50 text-slate-800 font-sans selection:bg-blue-200">
+                    <div className={printMode !== 'none' ? 'no-print' : 'block'}>
+                        {step === 'landing' && renderLanding()}
+                        {step === 'info' && renderInfoForm()}
+                        {step === 'quiz' && renderQuiz()}
+                        {step === 'result' && renderResult()}
+                        {step === 'review' && renderReview()}
+                    </div>
+                    {printMode === 'result' && renderPrintResult()}
+                    {printMode === 'practice' && renderPrintPractice()}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
